@@ -9,10 +9,9 @@ void columnasInput();
 void columnasOutput();
 void iniciarTimer0();
 
-bool teclaPress();
+int teclaPress();
 
-volatile bool teclaFlag = false; 
-
+volatile int teclaFlag = 0; 
 
 int main(){
 
@@ -30,16 +29,19 @@ int main(){
   columnasInput();      //Inicializa los estados de los pines de filas y columnas
 
   int fila=-1, columna=-1;
-  iniciarTimer0();
+
 
   while(1){
+    teclaFlag = teclaPress();       //chequea si hay alguna tecla presionada
+    if(teclaFlag == 1){
+      iniciarTimer0();              //empieza a contar 
+      if(teclaFlag>1){
+        columna=evaluarColumna();   //si sigue presionada la tecla, se guardan los valores y se muestra
+        fila=evaluarFila();
 
-    if(teclaFlag){
-      fila=evaluarFila();
-      columna=evaluarColumna();
-
-      if(columna>=0 && fila>=0){
-        Serial.println(matriz[fila][columna]);
+        if(columna>=0 && fila>=0){
+          Serial.println(matriz[fila][columna]);
+        }
       }
 
       columna=-1;
@@ -55,21 +57,24 @@ void iniciarTimer0(){
   TIMSK0 |= (1 << OCIE0A);
 }
 
-bool teclaPress(){
-  int fila=evaluarFila();
-  int columna=evaluarColumna();
+int teclaPress(){
+  int columna = 0, fila = 0;
+  while(1){
+  columna=evaluarColumna();
+  fila=evaluarFila();
 
   if(columna>=0 && fila>=0){
-        return true;
+        return 1;
       }
-  return false;
+  }
+  return 0;
 }
 
 ISR(TIMER0_COMPA_vect){
- /* if(teclaPress()){
-    teclaFlag = true;
+  if(teclaPress()){
+    teclaFlag+=1;
   }
-  else teclaFlag = false;*/
+  else teclaFlag;
 }
 
 void columnasInput(){
