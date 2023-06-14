@@ -35,9 +35,12 @@ void loop(){
         iniciarTimer0();
         if(teclaFlag){
             columna=evaluarColumna();
+            _delay_ms(10);
             columnasOutput();
+            _delay_ms(10);
             fila=evaluarFila();
             columnasInput();
+            _delay_ms(10);
             if((ultEstado != matriz[fila][columna]) || cambio){      
                 Serial.println(matriz[fila][columna]);
                 teclaFlag = false;
