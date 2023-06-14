@@ -17,12 +17,12 @@ int columna = -1, fila = -1;
 
 char ultEstado;
 
-char matriz [4][4]={   //La distribucion del teclado
-  {'1','2','3','A'},
-  {'4','5','6','B'},
-  {'7','8','9','C'},
-  {'*','0','#','D'}
-};
+  char matriz [4][4]={   //La distribucion del teclado
+    {'1','2','3','A'},
+    {'4','5','6','B'},
+    {'7','8','9','C'},
+    {'*','0','#','D'}
+  };
 
 void setup(){
     Serial.begin(9600);
