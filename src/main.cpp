@@ -3,13 +3,19 @@
 #include <Arduino.h>
 
 int evaluarFila();
+int evaluarColumna();
 
 void columnasInput();
 void columnasOutput();
+void iniciarTimer0();
+void setup();
+void loop();
 
-int main(){
+volatile bool teclaFlag = false, cambio = false; 
 
-Serial.begin(115200);
+int columna = -1, fila = -1;
+
+char ultEstado;
 
 char matriz [4][4]={   //La distribucion del teclado
   {'1','2','3','A'},
@@ -18,140 +24,114 @@ char matriz [4][4]={   //La distribucion del teclado
   {'*','0','#','D'}
 };
 
-
-  columnasInput();
-
-  int fila=-1, columna=-1;
-
-  while(1){
-
-    
-    if(!(PINB & (1 << PB0))){                        // Evalua si se presiona algun boton de la 1ra columna
-      // Serial.println("1C");
-      columna=0;
-      fila=evaluarFila();
-    }
-
-    if(!(PINB & (1 << PB1))){                       // Evalua si se presiona algun boton de la 2da columna
-      // Serial.println("2C");
-      columna=1;
-      fila=evaluarFila();
-    }
-
-    if(!(PINB & (1 << PB2))){                       // Evalua si se presiona algun boton de la 3ra columna
-      // Serial.println("3C");
-      columna=2;
-      fila=evaluarFila();
-    }
-
-    if(!(PINB & (1 << PB3))){                       // Evalua si se presiona algun boton de la 4ta columna
-      // Serial.println("4C");
-      columna=3;
-      fila=evaluarFila();
-    }
-
-
-    if(columna>=0 && fila>=0){
-      Serial.println(matriz[fila][columna]);
-      
-    }
-
-
-    columna=-1;
-    fila=-1;
-
-    
-  }
-
+void setup(){
+    Serial.begin(9600);
+    columnasInput();      //Inicializa los estados de los pines de filas y columnas
+    sei();
 }
 
-  
+void loop(){
+    if(PINB != 15){
+        iniciarTimer0();
+        if(teclaFlag){
+            columna=evaluarColumna();
+            columnasOutput();
+            fila=evaluarFila();
+            columnasInput();
+            if((ultEstado != matriz[fila][columna]) || cambio){      
+                Serial.println(matriz[fila][columna]);
+                teclaFlag = false;
+                cambio = false;
+                ultEstado = matriz[fila][columna];
+            }
 
+        }
+    }
+    else if(PINB == 15){        //No hay ninguna tecla presionada por cierto tiempo
+        iniciarTimer0();
+        if(!teclaFlag){
+            cambio = true;      //Se puede volver a ingresar la misma tecla
+        }
+    }
+    
+    teclaFlag = false;
+}
+
+void iniciarTimer0(){
+  TCCR0A |= (1 << WGM01);         //Timer0 en modo CTC
+  TCCR0B |= (1 << CS01)  ;        //Prescaler en /8 
+  OCR0A = 124;
+  TIMSK0 |= (1 << OCIE0A);        //Interrupt en Compare Match A
+}
+
+ISR(TIMER0_COMPA_vect){
+    //Serial.println(TCNT0);
+  if(PINB != 15){
+    teclaFlag = true;
+  }
+  else teclaFlag = false;
+}
 
 void columnasInput(){
 
-  DDRB &= ~(1 << PB0) & ~(1 << PB1) & ~(1 << PB2) & ~(1 << PB3);        // PB0, PB1, PB2 y PB3 seteados a INPUT 
-  DDRD |= (1 << PD2) | (1 << PD3) | (1 << PD4) | (1 << PD5);            // PD2, PD3, PD4 y PD5 seteados a OUTPUT
+  DDRB &= ~(1 << PB0) & ~(1 << PB1) & ~(1 << PB2) & ~(1 << PB3);        // PB0, PB1, PB2 y PB3 (Columnas) seteados a INPUT 
+  DDRD |= (1 << PD2) | (1 << PD3) | (1 << PD4) | (1 << PD5);            // PD2, PD3, PD4 y PD5 (Filas) seteados a OUTPUT
 
 
   PORTD &= ~(1 << PD2) & ~(1 << PD3) & ~(1 << PD4) & ~(1 << PD5);
-  PORTB |= (1 << PB0) | (1 << PB1) | (1 << PB2) | (1 << PB3);           // Se habilitan los pull-up resistors de todos los INPUT
+  PORTB |= (1 << PB0) | (1 << PB1) | (1 << PB2) | (1 << PB3);           // Se habilitan los pull-up resistors de las columnas 
 
 }
 
 void columnasOutput(){
 
-  DDRD &= ~(1 << PD2) & ~(1 << PD3) & ~(1 << PD4) & ~(1 << PD5);        
-  DDRB |= (1 << PB0) | (1 << PB1) | (1 << PB2) | (1 << PB3);      
+  DDRD &= ~(1 << PD2) & ~(1 << PD3) & ~(1 << PD4) & ~(1 << PD5);        // PD2, PD3, PD4 y PD5 (Filas) seteados a INPUT
+  DDRB |= (1 << PB0) | (1 << PB1) | (1 << PB2) | (1 << PB3);            // PB0, PB1, PB2 y PB3 (Columnas) seteados a OUTPUT
 
 
   PORTB &= ~(1 << PB0) & ~(1 << PB1) & ~(1 << PB2) & ~(1 << PB3);
-  PORTD |= (1 << PD2) | (1 << PD3) | (1 << PD4) | (1 << PD5);      
+  PORTD |= (1 << PD2) | (1 << PD3) | (1 << PD4) | (1 << PD5);           // Se habilitan los pull-up resistors de las filas
 
+}
+
+int evaluarColumna(){
+
+  if(!(PINB & (1 << PB0))){                       // Evalua si se presiona algun boton de la 1ra columna
+    return 0;
+  }
+
+  if(!(PINB & (1 << PB1))){                       // Evalua si se presiona algun boton de la 2da columna
+    return 1;
+  }
+
+  if(!(PINB & (1 << PB2))){                       // Evalua si se presiona algun boton de la 3ra columna
+    return 2;
+  }
+
+  if(!(PINB & (1 << PB3))){                       // Evalua si se presiona algun boton de la 4ta columna
+    return 3;
+  }
+  
+  return -1;
 }
 
 int evaluarFila(){
 
-  columnasOutput();
-  
-  while(1){
-
-    if(!(PIND & (1 << PD2))){                        // Evalua si se presiona algun boton de la 1ra columna
-      columnasInput();
-      return 0;
-    }
-
-    if(!(PIND & (1 << PD3))){                       // Evalua si se presiona algun boton de la 2da columna
-      columnasInput();
-      return 1;
-    }
-
-    if(!(PIND & (1 << PD4))){                       // Evalua si se presiona algun boton de la 3ra columna
-      columnasInput();
-      return 2;
-    }
-
-    if(!(PIND & (1 << PD5))){                       // Evalua si se presiona algun boton de la 4ta columna
-      columnasInput();
-      return 3;
-    }
-
+  if(!(PIND & (1 << PD2))){                       // Evalua si se presiona algun boton de la 1ra fila
+    return 0;
   }
 
- 
+  if(!(PIND & (1 << PD3))){                       // Evalua si se presiona algun boton de la 2da fila
+    return 1;
+  }
 
+  if(!(PIND & (1 << PD4))){                       // Evalua si se presiona algun boton de la 3ra fila
+    return 2;
+  }
 
+  if(!(PIND & (1 << PD5))){                       // Evalua si se presiona algun boton de la 4ta fila
+    return 3;
+  }
+
+  return -1;
 }
-
-
-
-
-
-
-//--------------------------------------------------------------Esta es la prueba del boton------------------------------------------------------------------
-
-// DDRB |= (1 << PB0); //PB0 en Output
-// DDRB &= ~(1 << PB1); //PB1 en Input
-
-
-// // PORTB &= ~(1 << PB1); //Sin pull-up resistor
-// PORTB |= (1 << PB1); //Con internal pull-up resistor
-
-// int i=1;
-
-// while(1){
-
-//   if(!(PINB & (1 << PB1))){        //Evalua si PB1 esta en LOW (0) y lo invierte con un !, asi entra al if
-
-//     Serial.print("Prendido ");
-//     Serial.println(i);
-//     i++;
-
-//   }
-
-  
-// }
-
-
-
-
