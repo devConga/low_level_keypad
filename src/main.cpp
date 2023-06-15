@@ -41,8 +41,8 @@ void loop(){
             fila=evaluarFila();
             columnasInput();
             _delay_ms(10);
-            if((ultEstado != matriz[fila][columna]) || cambio){    
-                if((fila >=0 && columna>=0)){
+            if((ultEstado != matriz[fila][columna]) || cambio){      
+              if((fila >=0 && columna>=0)){
                 Serial.println(matriz[fila][columna]);
                 ultEstado = matriz[fila][columna];
                 }
