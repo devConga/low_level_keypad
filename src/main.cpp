@@ -35,16 +35,20 @@ void loop(){
         iniciarTimer0();
         if(teclaFlag){
             columna=evaluarColumna();
+            _delay_ms(10);
             columnasOutput();
+            _delay_ms(10);
             fila=evaluarFila();
             columnasInput();
-            if((ultEstado != matriz[fila][columna]) || cambio){      
+            _delay_ms(10);
+            if((ultEstado != matriz[fila][columna]) || cambio){    
+                if((fila >=0 && columna>=0)){
                 Serial.println(matriz[fila][columna]);
+                ultEstado = matriz[fila][columna];
+                }
                 teclaFlag = false;
                 cambio = false;
-                ultEstado = matriz[fila][columna];
             }
-
         }
     }
     else if(PINB == 15){        //No hay ninguna tecla presionada por cierto tiempo
@@ -53,8 +57,6 @@ void loop(){
             cambio = true;      //Se puede volver a ingresar la misma tecla
         }
     }
-    
-    teclaFlag = false;
 }
 
 void iniciarTimer0(){
